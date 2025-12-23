@@ -74,7 +74,7 @@ namespace OsPoolVhdx2Vhdx
 
                         Logging.Log();
 
-                        foreach (KeyValuePair<long, string> disk in disks)
+                        foreach (KeyValuePair<long, string> disk in disks.OrderBy(x => x.Key).Skip(1))
                         {
                             Space space = pool.OpenDisk(disk.Key);
 
