@@ -1,3 +1,9 @@
 [submodule "StorageSpace"]
 	path = StorageSpace
 	url = https://github.com/gus33000/StorageSpace
+[submodule "Img2Ffu"]
+	path = Img2Ffu
+	url = https://github.com/WOA-Project/Img2Ffu
+[submodule "EDLProgram2VHDX"]
+	path = EDLProgram2VHDX
+	url = https://github.com/gus33000/EDLProgram2VHDX

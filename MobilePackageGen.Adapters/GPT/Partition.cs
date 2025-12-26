@@ -18,7 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-namespace OsPoolVhdx2Vhdx.GPT
+namespace MobilePackageGen.GPT
 {
     public partial class GPT
     {

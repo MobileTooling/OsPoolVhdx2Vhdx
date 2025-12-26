@@ -1,5 +1,6 @@
 ﻿using DiscUtils;
 using DiscUtils.Streams;
+using MobilePackageGen;
 using StorageSpace;
 
 namespace OsPoolVhdx2Vhdx
@@ -10,78 +11,54 @@ namespace OsPoolVhdx2Vhdx
         {
             Logging.Log("\nVHDX Containing a Storage Space OS Pool To Individual Storage Space VHDx(s) tool\nVersion: 1.0.0.0\n");
 
-            if (args.Length != 2)
+            if (args.Length < 2)
             {
-                Logging.Log("Usage: OsPoolVhdx2Vhdx <Path to VHD(X) File with Storage Pool> <Output director for SPACEDisk.vhdx files>");
+                PrintHelp();
                 return;
             }
 
-            string VhdxPath = args[0];
-            string OutputDirectory = args[1];
+            string[] inputArgs = args[..^1];
+            string outputFolder = args[^1];
 
-            if (!File.Exists(VhdxPath))
+            IEnumerable<IDisk> disks = DiskLoader.LoadDisks(inputArgs);
+
+            if (!disks.Any())
             {
-                Logging.Log($"VHD(X) file does not exist: {VhdxPath}");
+                PrintHelp();
                 return;
             }
 
-            if (!Directory.Exists(OutputDirectory))
+            if (!Directory.Exists(outputFolder))
             {
-                Directory.CreateDirectory(OutputDirectory);
+                Directory.CreateDirectory(outputFolder);
             }
 
-            DumpSpaces(VhdxPath, OutputDirectory);
+            DumpSpaces(disks, outputFolder);
         }
 
-        public static void DumpSpaces(string vhdx, string outputDirectory)
+        public static void PrintHelp()
         {
-            VirtualDisk virtualDisk;
-            if (vhdx.EndsWith(".vhd", StringComparison.InvariantCultureIgnoreCase))
-            {
-                virtualDisk = new DiscUtils.Vhd.Disk(vhdx, FileAccess.Read);
-            }
-            else
-            {
-                virtualDisk = new DiscUtils.Vhdx.Disk(vhdx, FileAccess.Read);
-            }
+            Logging.Log("\nVHDX Containing a Storage Space OS Pool To Individual Storage Space VHDx(s) tool\nVersion: 1.0.0.0\n");
+        }
 
-            int sectorSize = virtualDisk.Geometry!.Value.BytesPerSector;//4096;//virtualDisk.Geometry!.Value.BytesPerSector;
-
-            IEnumerable<GPT.GPT.Partition>? partitionTable = GetGPTPartitions(virtualDisk.Content, (uint)sectorSize);
-
-            if (partitionTable != null)
+        public static void DumpSpaces(IEnumerable<IDisk> idisks, string outputDirectory)
+        {
+            foreach (IDisk idisk in idisks)
             {
-                foreach (GPT.GPT.Partition partitionInfo in partitionTable)
+                foreach (IPartition partition in idisk.Partitions)
                 {
-                    Stream partitionStream = Open(partitionInfo, (uint)sectorSize, virtualDisk.Content);
-
-                    if (partitionInfo.PartitionTypeGuid == new Guid("E75CAF8F-F680-4CEE-AFA3-B001E56EFC2D"))
+                    if (partition.Type == new Guid("E75CAF8F-F680-4CEE-AFA3-B001E56EFC2D"))
                     {
-                        Logging.Log();
-
-                        Logging.Log($"{partitionInfo.Name} {partitionInfo.PartitionGuid} {partitionInfo.PartitionTypeGuid} {partitionInfo.SizeInSectors * (uint)sectorSize} StoragePool");
-
-                        Pool pool = new(partitionStream);
+                        partition.Stream.Position = 0;
+                        Pool pool = new(partition.Stream);
 
                         Dictionary<long, string> disks = pool.GetDisks();
-
-                        foreach (KeyValuePair<long, string> disk in disks.OrderBy(x => x.Key))
-                        {
-                            using Space space = pool.OpenDisk(disk.Key);
-
-                            Logging.Log($"- {disk.Key}: {disk.Value} ({space.Length}B / {space.Length / 1024 / 1024}MB / {space.Length / 1024 / 1024 / 1024}GB) StorageSpace");
-                        }
-
-                        Logging.Log();
 
                         foreach (KeyValuePair<long, string> disk in disks.OrderBy(x => x.Key).Skip(1))
                         {
                             Space space = pool.OpenDisk(disk.Key);
-
                             int spaceSectorSize = TryDetectSectorSize(space);
-
                             DumpSpace(outputDirectory, disk.Value, space, spaceSectorSize);
-
                             space.Dispose();
                         }
                     }
@@ -109,48 +86,6 @@ namespace OsPoolVhdx2Vhdx
             Logging.Log($"Dumping {disk}");
             space.CopyTo(outDisk.Content, progressCallback);
             Logging.Log();
-        }
-
-        private static SubStream Open(GPT.GPT.Partition entry, uint SectorSize, Stream _diskData)
-        {
-            ulong start = entry.FirstSector * SectorSize;
-            ulong end = (entry.LastSector + 1) * SectorSize;
-
-            if ((long)end >= _diskData.Length)
-            {
-                end = (ulong)_diskData.Length;
-            }
-
-            return new SubStream(_diskData, (long)start, (long)(end - start));
-        }
-
-        private static List<GPT.GPT.Partition>? GetGPTPartitions(Stream diskStream, uint sectorSize)
-        {
-            diskStream.Seek(0, SeekOrigin.Begin);
-
-            try
-            {
-                byte[] buffer = new byte[sectorSize * 2];
-                diskStream.Read(buffer, 0, buffer.Length);
-                diskStream.Seek(0, SeekOrigin.Begin);
-
-                uint GPTBufferSize = OsPoolVhdx2Vhdx.GPT.GPT.GetGPTSize(buffer, sectorSize);
-
-                buffer = new byte[GPTBufferSize];
-                diskStream.Read(buffer, 0, buffer.Length);
-                diskStream.Seek(0, SeekOrigin.Begin);
-
-                GPT.GPT GPT = new(buffer, sectorSize);
-
-                return GPT.Partitions;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("EXCEPTION!");
-                Console.WriteLine(ex);
-                diskStream.Seek(0, SeekOrigin.Begin);
-                return null;
-            }
         }
 
         private static int TryDetectSectorSize(Stream diskStream)

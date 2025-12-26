@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>x86;x64;ARM64;ARM32</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="ARM64\7z.dll" />
+    <None Remove="x64\7z.dll" />
+    <None Remove="x86\7z.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="ARM64\7z.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="x64\7z.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="x86\7z.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LTRData.DiscUtils.FileSystems" Version="1.0.55" />
+    <PackageReference Include="LTRData.DiscUtils.Streams" Version="1.0.55" />
+  </ItemGroup>
+
+</Project>

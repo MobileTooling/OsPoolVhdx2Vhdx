@@ -18,11 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using OsPoolVhdx2Vhdx.Helpers;
-using System.Collections.Concurrent;
-using System.Numerics;
+using MobilePackageGen.Helpers;
 
-namespace OsPoolVhdx2Vhdx.GPT
+namespace MobilePackageGen.GPT
 {
     public partial class GPT
     {
